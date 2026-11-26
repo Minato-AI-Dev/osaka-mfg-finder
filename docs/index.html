@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大阪の加工技術マッチング（静的デモ）</title>
+<style>
+  :root { --bg:#f7f7f5; --fg:#1d1d1b; --muted:#6b6b66; --card:#fff; --line:#dcdcd6; --accent:#1f5c99; --ok:#2e7d4f; --warn:#8a5a00; --chip:#eef3f9; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#161716; --fg:#ececea; --muted:#9a9a94; --card:#1f201f; --line:#383a38; --accent:#7fb2e5; --ok:#6cc08f; --warn:#e0b066; --chip:#262b33; }
+  }
+  :root[data-theme="dark"] { --bg:#161716; --fg:#ececea; --muted:#9a9a94; --card:#1f201f; --line:#383a38; --accent:#7fb2e5; --ok:#6cc08f; --warn:#e0b066; --chip:#262b33; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.6 system-ui, "Hiragino Sans", "Yu Gothic", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 24px 16px 56px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 17px; margin: 28px 0 10px; }
+  .lead { color: var(--muted); margin: 0 0 16px; }
+  .notice { border:1px solid var(--warn); background: color-mix(in srgb, var(--warn) 10%, transparent); padding:10px 14px; border-radius:8px; font-size:14px; }
+  nav { display:flex; flex-wrap:wrap; gap:8px; margin: 18px 0 8px; }
+  nav button { border:1px solid var(--line); background:var(--card); color:var(--fg); padding:8px 14px; border-radius:999px; cursor:pointer; font:inherit; }
+  nav button[aria-selected="true"] { border-color: var(--accent); color: var(--accent); font-weight:600; }
+  input[type="search"] { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--fg); font:inherit; margin: 6px 0 12px; }
+  .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .card h3 { font-size:15px; margin:0 0 6px; }
+  .meta { color: var(--muted); font-size:13px; margin: 0 0 8px; }
+  .chip { display:inline-block; background:var(--chip); color:var(--accent); border-radius:999px; padding:2px 9px; font-size:12px; margin: 0 4px 4px 0; }
+  .ok { color: var(--ok); font-weight:600; }
+  .novel { color: var(--warn); font-weight:600; }
+  dl { margin: 0; font-size:13px; }
+  dt { color: var(--muted); float:left; clear:left; width:6.5em; }
+  dd { margin: 0 0 3px 7em; }
+  .empty { color: var(--muted); padding: 20px 0; }
+  footer { margin-top: 36px; color: var(--muted); font-size:13px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>大阪の加工技術マッチング</h1>
+  <p class="lead">大阪の中小製造業の加工技術と、異業種を含む需要をAIで照合するMVPの紹介ページです。</p>
+
+  <div class="notice">
+    <strong>これは静的デモです。</strong>AIによるマッチングは動いていません。画面の内容は、架空のサンプルデータと、作成者が付けた「正解データ（人手による判断の例）」だけを表示しています。実際のAI照合の性能を示すものではありません。
+  </div>
+
+  <nav role="tablist">
+    <button role="tab" aria-selected="true" data-tab="suppliers">企業（10社）</button>
+    <button role="tab" aria-selected="false" data-tab="demands">需要（15件）</button>
+    <button role="tab" aria-selected="false" data-tab="examples">照合の例（正解データ）</button>
+  </nav>
+
+  <input type="search" id="q" placeholder="キーワードで絞り込み（例: 歯車、SUS304、医療機器）">
+  <section id="view"></section>
+
+  <h2>この仕組み</h2>
+  <div class="card">
+    <ul style="margin:0;padding-left:18px">
+      <li>企業と需要をCSVで取り込み、加工技術・材料・精度・能力などで照合します。</li>
+      <li>AIが候補を出し、その根拠は原文に一字一句含まれる場合だけ採用します。</li>
+      <li>寸法や精度などの必須条件を満たさない組み合わせは除外し、スコアを低く抑えます。</li>
+      <li>外部のAIに送るのは、利用を許諾されたデータ（licensed）と架空データ（fictional）だけです。</li>
+    </ul>
+  </div>
+
+  <footer>
+    ソースコードと実行手順: <a href="https://github.com/Minato-AI-Dev/osaka-mfg-finder">github.com/Minato-AI-Dev/osaka-mfg-finder</a><br>
+    すべての企業名・需要者名は架空です。
+  </footer>
+</main>
+
+<script>
+const DATA = {"suppliers":[{"supplier_id":"S-01","name":"【架空】東大阪精密切削工業","location":"大阪府東大阪市","industry":"機械部品加工","processes":"精密切削加工（NC旋盤・マシニングセンタ）、微細穴加工","materials":"アルミ（A5052・A6061）、SUS304、真鍮","equipment":"NC旋盤、マシニングセンタ、三次元測定機","precision":"±0.01mm（指定時）","dimensions":"φ2〜200mm","capacity":"1〜500個（小ロット試作対応）","products":"医療機器部品の試作・小ロット（架空の実績例）","strengths":"試作の短納期対応、微細穴加工","source_url":"fictional://sample/S-01","license_status":"fictional"},{"supplier_id":"S-02","name":"【架空】河内板金製作所","location":"大阪府八尾市","industry":"板金加工","processes":"レーザー切断、曲げ、溶接の一貫生産","materials":"SPCC、SUS304、アルミ","equipment":"ファイバーレーザー加工機、曲げ機、溶接機","precision":"±0.1mm","dimensions":"板厚0.5〜6mm、最大1500×3000mm","capacity":"10〜1000台","products":"食品機械の筐体、物流設備のフレーム（架空）","strengths":"レーザーから溶接まで社内で一貫対応","source_url":"fictional://sample/S-02","license_status":"fictional"},{"supplier_id":"S-03","name":"【架空】堺樹脂成形工房","location":"大阪府堺市","industry":"樹脂成形","processes":"射出成形、二色成形（架空）","materials":"PP、POM、PA66、PC","equipment":"射出成形機（小型中心）","precision":"±0.05mm","dimensions":"10〜200mm","capacity":"500〜50000ショット","products":"水回り部品、小型の樹脂ケース（架空）","strengths":"小型で精密な成形品の量産","source_url":"fictional://sample/S-03","license_status":"fictional"},{"supplier_id":"S-04","name":"【架空】大阪表面処理センター","location":"大阪府大阪市住之江区","industry":"表面処理","processes":"亜鉛めっき、アルマイト処理、黒染め","materials":"鉄鋼、アルミ、亜鉛ダイカスト","equipment":"処理槽（大型）、膜厚測定器","precision":"膜厚±2μm","dimensions":"最大600×400×300mm","capacity":"100〜10000個","products":"農業機械部品の防錆処理（架空）","strengths":"大型部品の一括処理","source_url":"fictional://sample/S-04","license_status":"fictional"},{"supplier_id":"S-05","name":"【架空】泉州金属研磨","location":"大阪府岸和田市","industry":"金属研磨","processes":"バフ研磨、自動研磨、バリ取り","materials":"SUS304、アルミ、真鍮","equipment":"自動研磨機、バフ盤","precision":"表面粗さRa0.1μm（指定時）","dimensions":"最大300mm","capacity":"1〜2000個","products":"食品製造設備の衛生部品の研磨（架空）","strengths":"鏡面研磨、手作業と自動研磨の併用","source_url":"fictional://sample/S-05","license_status":"fictional"},{"supplier_id":"S-06","name":"【架空】淀川溶接工業","location":"大阪府枚方市","industry":"溶接・組立","processes":"TIG溶接、MIG溶接、組立","materials":"炭素鋼（SS400）、SUS、アルミ","equipment":"溶接ロボット、定盤","precision":"±0.5mm","dimensions":"最大全長3000mm","capacity":"1〜300台","products":"環境設備の水槽・配管架台（架空）","strengths":"大物構造物の溶接","source_url":"fictional://sample/S-06","license_status":"fictional"},{"supplier_id":"S-07","name":"【架空】大阪歯車製作所","location":"大阪府東大阪市","industry":"歯車加工","processes":"ホブ切り、歯切り、歯面研削","materials":"SCM415、S45C、SCM420","equipment":"ホブ盤、歯車研削盤、歯形測定機","precision":"JIS5級相当（社内基準）","dimensions":"φ10〜400mm、モジュール0.5〜5","capacity":"1〜1000個","products":"農業機械用歯車、ロボット減速機部品（架空）","strengths":"歯形の社内測定まで対応","source_url":"fictional://sample/S-07","license_status":"fictional"},{"supplier_id":"S-08","name":"【架空】北摂微細加工ラボ","location":"大阪府茨木市","industry":"微細加工","processes":"レーザー微細加工、フォトエッチング","materials":"SUS304、銅合金、42アロイ","equipment":"ファイバーレーザー微細加工機、エッチング設備","precision":"±3μm","dimensions":"最大200×200mm、厚み0.02〜0.5mm","capacity":"10〜5000枚","products":"電子部品用金属マスク、センサ部品の試作（架空）","strengths":"薄板への微細パターン加工","source_url":"fictional://sample/S-08","license_status":"fictional"},{"supplier_id":"S-09","name":"【架空】天王寺精密治具","location":"大阪府大阪市平野区","industry":"治具・省力化機械","processes":"治具設計、機械組立、位置決め加工","materials":"鉄鋼、アルミ、樹脂","equipment":"3次元CAD、組立ベンチ","precision":"±0.05mm","dimensions":"最大1000mm","capacity":"1〜50台（受注生産）","products":"物流設備向け搬送治具、自動化装置の組立（架空）","strengths":"設計から組立まで一貫対応","source_url":"fictional://sample/S-09","license_status":"fictional"},{"supplier_id":"S-10","name":"【架空】南大阪樹脂加工","location":"大阪府松原市","industry":"樹脂切削加工","processes":"CNC切削、ドライ加工","materials":"PEEK、PTFE、POM、アクリル（PMMA）","equipment":"CNC旋盤、CNCフライス","precision":"±0.02mm","dimensions":"φ5〜300mm","capacity":"1〜500個","products":"水処理装置の耐薬品部材、食品機械のスペーサー（架空）","strengths":"耐薬品性樹脂の切削加工","source_url":"fictional://sample/S-10","license_status":"fictional"}],"demands":[{"demand_id":"D-01","title":"医療機器向けステンレス精密部品の小ロット試作","issuer":"（架空）医療機器開発企業A","industry":"医療機器","problem":"手術器具の試作部品を小ロットで短納期に作りたい","required_functions":"精密な試作部品の供給","required_technologies":"精密切削加工、微細穴加工","materials":"SUS304","required_conditions":"φ5〜20mm、公差±0.01mm","desired_conditions":"表面粗さの指定あり","quantity_delivery":"10〜30個","region":"大阪府内（希望）","published_at":"2026-09-01","deadline":"2027-03-31","source_url":"fictional://sample/D-01","license_status":"fictional","demand_type":"order"},{"demand_id":"D-02","title":"小型樹脂ハウジングの試作","issuer":"（架空）医療機器開発企業B","industry":"医療機器","problem":"試作用の小型樹脂ケースが必要","required_functions":"内部部品の保持と防水性","required_technologies":"樹脂切削加工、樹脂成形（試作）","materials":"POM、PP","required_conditions":"公差±0.05mm、φ10〜60mm","desired_conditions":"透明樹脂への対応","quantity_delivery":"100個（2027年2月納品）","region":"大阪府内優先","published_at":"2026-08-15","deadline":"2027-01-31","source_url":"fictional://sample/D-02","license_status":"fictional","demand_type":"tech_search"},{"demand_id":"D-03","title":"ロボット減速機用の小型歯車の試作","issuer":"（架空）ロボット部品開発企業C","industry":"ロボット","problem":"減速機の試作用に小型平歯車が必要","required_functions":"動力伝達","required_technologies":"歯車加工（ホブ切り）、歯面研削","materials":"SCM415","required_conditions":"モジュール1、歯数40前後、JIS相当の精度","desired_conditions":"熱処理後の寸法保証","quantity_delivery":"50個","region":"関西圏","published_at":"2026-07-01","deadline":"2026-12-31","source_url":"fictional://sample/D-03","license_status":"fictional","demand_type":"order"},{"demand_id":"D-04","title":"ロボット用薄板センサ金具の微細加工","issuer":"（架空）センサ開発企業D","industry":"ロボット","problem":"薄板金具に微細な孔パターンを形成したい","required_functions":"センサの固定と位置決め","required_technologies":"レーザー微細加工、フォトエッチング","materials":"SUS304","required_conditions":"板厚0.1mm、穴径0.05mm以上","desired_conditions":"バリの少ない加工","quantity_delivery":"200枚（試作）","region":"制限なし","published_at":"2026-10-01","deadline":"2027-04-30","source_url":"fictional://sample/D-04","license_status":"fictional","demand_type":"tech_search"},{"demand_id":"D-05","title":"水処理装置の耐薬品性スペーサー","issuer":"（架空）水処理装置メーカーE","industry":"水処理","problem":"薬液に触れる部材の耐薬品性が必要","required_functions":"薬液の遮断・シール","required_technologies":"樹脂切削加工","materials":"PTFE","required_conditions":"公差±0.02mm、厚み2〜10mm","desired_conditions":"図面支給後の短納期","quantity_delivery":"500個（年間）","region":"大阪府内","published_at":"2026-06-10","deadline":"2027-02-28","source_url":"fictional://sample/D-05","license_status":"fictional","demand_type":"order"},{"demand_id":"D-06","title":"水槽・配管架台の大型溶接","issuer":"（架空）環境設備施工会社F","industry":"環境設備","problem":"現場用の大型架台を溶接で製作したい","required_functions":"重量物の支持","required_technologies":"溶接（MIG）、組立","materials":"炭素鋼（SS400）","required_conditions":"全長3000mm以内、溶接部の外観検査","desired_conditions":"塗装前処理への対応","quantity_delivery":"10台","region":"京阪神","published_at":"2026-05-20","deadline":"2026-12-15","source_url":"fictional://sample/D-06","license_status":"fictional","demand_type":"order"},{"demand_id":"D-07","title":"排水処理設備の防食表面処理","issuer":"（架空）環境設備メーカーG","industry":"環境設備","problem":"亜鉛ダイカスト部品の耐食性を高めたい","required_functions":"防食・防錆","required_technologies":"表面処理（亜鉛めっき、黒色クロメート相当）","materials":"亜鉛ダイカスト","required_conditions":"膜厚±2μm以内、最大寸法600mm","desired_conditions":"環境配慮型の処理","quantity_delivery":"月500個","region":"大阪府内","published_at":"2026-08-01","deadline":"2027-06-30","source_url":"fictional://sample/D-07","license_status":"fictional","demand_type":"tech_search"},{"demand_id":"D-08","title":"農業機械用の大型歯車（試作）","issuer":"（架空）農業機械メーカーH","industry":"農業機械","problem":"大型の伝動歯車を内製化したい","required_functions":"大型の動力伝達","required_technologies":"歯車加工（ホブ切り）、熱処理後研削","materials":"SCM420","required_conditions":"φ600mm、モジュール4、焼入れ後の精度","desired_conditions":"社内で歯形測定ができること","quantity_delivery":"5個","region":"近畿","published_at":"2026-09-10","deadline":"2027-05-31","source_url":"fictional://sample/D-08","license_status":"fictional","demand_type":"tech_search"},{"demand_id":"D-09","title":"食品製造設備の衛生部品の鏡面研磨","issuer":"（架空）食品機械メーカーI","industry":"食品製造設備","problem":"洗浄しやすい鏡面仕上げ部品が必要","required_functions":"衛生性・洗浄性","required_technologies":"金属研磨、バフ研磨","materials":"SUS304","required_conditions":"表面粗さRa0.2μm以下","desired_conditions":"手作業と自動研磨の併用","quantity_delivery":"月200個","region":"大阪府内","published_at":"2026-04-01","deadline":"2027-03-31","source_url":"fictional://sample/D-09","license_status":"fictional","demand_type":"order"},{"demand_id":"D-10","title":"歯科用チタン微小部品の精密加工","issuer":"（架空）医療機器開発企業J","industry":"医療機器","problem":"チタン合金製の微小部品を精密に加工したい","required_functions":"生体適合性の確保","required_technologies":"精密切削加工","materials":"チタン合金（Ti-6Al-4V）","required_conditions":"公差±0.005mm、φ3mm以下","desired_conditions":"表面処理まで一括対応","quantity_delivery":"100個","region":"大阪府内","published_at":"2026-10-05","deadline":"2027-04-15","source_url":"fictional://sample/D-10","license_status":"fictional","demand_type":"tech_search"},{"demand_id":"D-11","title":"蓄電設備の屋外筐体の板金加工","issuer":"（架空）エネルギー機器メーカーK","industry":"エネルギー","problem":"屋外用の防水筐体を試作・少量生産したい","required_functions":"防水・耐候性","required_technologies":"板金加工（レーザー切断・曲げ・溶接）","materials":"SPCC、SUS304","required_conditions":"板厚1.6〜3.2mm、1000×800mm以内","desired_conditions":"一貫生産","quantity_delivery":"30台","region":"大阪府内","published_at":"2026-11-01","deadline":"2027-02-28","source_url":"fictional://sample/D-11","license_status":"fictional","demand_type":"tech_search"},{"demand_id":"D-12","title":"物流設備向け搬送治具の設計・製作","issuer":"（架空）物流設備事業者L","industry":"物流設備","problem":"搬送ライン用の治具を内製で作れる先を探している","required_functions":"荷の位置決め","required_technologies":"治具設計、組立、位置決め加工","materials":"アルミ、鉄鋼","required_conditions":"最大1000mmの治具","desired_conditions":"設計から組立まで一括","quantity_delivery":"年5〜10件","region":"大阪府内","published_at":"2026-03-20","deadline":"2027-03-20","source_url":"fictional://sample/D-12","license_status":"fictional","demand_type":"order"},{"demand_id":"D-13","title":"農業機械部品のアルミ防錆処理","issuer":"（架空）農業機械メーカーM","industry":"農業機械","problem":"屋外使用部品の防錆膜を厚さ管理して処理したい","required_functions":"防錆・耐食","required_technologies":"表面処理（アルマイト）","materials":"アルミ（A6061）","required_conditions":"膜厚±0.5μm以内","desired_conditions":"処理後の色の均一性","quantity_delivery":"月300個","region":"近畿","published_at":"2026-09-25","deadline":"2027-01-31","source_url":"fictional://sample/D-13","license_status":"fictional","demand_type":"tech_search"},{"demand_id":"D-14","title":"医療機器用の微小金属電極の試作（研究開発テーマ）","issuer":"（架空）医療センサ企業N（仮想の共同研究テーマ）","industry":"医療機器","problem":"薄板の微小パターン電極を試作したい","required_functions":"微小な電気信号の検出","required_technologies":"微細加工（レーザー、エッチング）","materials":"銅合金、42アロイ","required_conditions":"板厚0.05〜0.2mm、パターン幅0.05mm","desired_conditions":"少量試作","quantity_delivery":"50枚","region":"制限なし","published_at":"2026-10-20","deadline":"2027-05-31","source_url":"fictional://sample/D-14","license_status":"fictional","demand_type":"rnd_theme"},{"demand_id":"D-15","title":"水質センサ用の樹脂マイクロ流路の試作（将来用途の仮説）","issuer":"（架空）仮想の研究開発テーマ（用途仮説）","industry":"水処理","problem":"流路の小型化で検査時間を短縮できないか検討したい（仮説段階）","required_functions":"微小な流路で液体を導く","required_technologies":"樹脂微細加工","materials":"アクリル（PMMA）","required_conditions":"流路幅0.2mm以上、公差±0.02mm","desired_conditions":"透明性","quantity_delivery":"試作10個","region":"制限なし","published_at":"2026-11-05","deadline":"2027-12-31","source_url":"fictional://sample/D-15","license_status":"fictional","demand_type":"hypothesis"}],"truth":[{"demand_id":"D-01","supplier_id":"S-01","relevant":"1","note":"精密切削・SUS304・小ロットで適合"},{"demand_id":"D-01","supplier_id":"S-05","relevant":"0","note":"研磨専業で寸法公差の要件に合わない"},{"demand_id":"D-01","supplier_id":"S-08","relevant":"0","note":"精度±3μmで公差±0.01mmを満たせない"},{"demand_id":"D-03","supplier_id":"S-07","relevant":"1","note":"歯車加工・SCM415で適合"},{"demand_id":"D-03","supplier_id":"S-09","relevant":"0","note":"治具・組立専業で歯車加工の能力がない"},{"demand_id":"D-06","supplier_id":"S-06","relevant":"1","note":"大型溶接で適合"},{"demand_id":"D-06","supplier_id":"S-02","relevant":"0","note":"板金は薄板中心で3000mm溶接の能力が不明"},{"demand_id":"D-08","supplier_id":"S-07","relevant":"0","note":"最大φ400mmで必須寸法φ600mmを満たさない（ハード条件不一致）"},{"demand_id":"D-08","supplier_id":"S-01","relevant":"0","note":"歯車加工の能力がない"},{"demand_id":"D-09","supplier_id":"S-05","relevant":"1","note":"鏡面研磨・SUS304で適合"},{"demand_id":"D-09","supplier_id":"S-09","relevant":"0","note":"研磨の能力がない"},{"demand_id":"D-11","supplier_id":"S-02","relevant":"1","note":"異業種（食品機械）の板金技術を屋外筐体へ応用できる（応用可能性）"},{"demand_id":"D-11","supplier_id":"S-06","relevant":"0","note":"溶接は可能だが薄板の板金一貫生産に合わない"},{"demand_id":"D-12","supplier_id":"S-09","relevant":"1","note":"治具設計・組立で適合"},{"demand_id":"D-12","supplier_id":"S-02","relevant":"0","note":"治具の設計・組立の能力が不明"},{"demand_id":"D-14","supplier_id":"S-08","relevant":"1","note":"薄板の微細加工技術を医療電極へ応用できる（応用可能性）"},{"demand_id":"D-14","supplier_id":"S-01","relevant":"0","note":"微細パターン加工の能力がない"}]};
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const byId = (list, key) => Object.fromEntries(list.map((r) => [r[key], r]));
+const sup = byId(DATA.suppliers, "supplier_id");
+const dem = byId(DATA.demands, "demand_id");
+const haystack = (r) => Object.values(r).join(" ").toLowerCase();
+const match = (r, q) => !q || q.split(/\s+/).every((w) => haystack(r).includes(w));
+
+const chips = (text) => String(text || "").split(/[、,]/).map((t) => t.trim()).filter(Boolean)
+  .map((t) => `<span class="chip">${esc(t)}</span>`).join("");
+
+function supplierCard(s) {
+  return `<article class="card">
+    <h3>${esc(s.name)}</h3>
+    <p class="meta">${esc(s.location)} ・ ${esc(s.industry)}</p>
+    <p>${chips(s.processes)}</p>
+    <dl>
+      <dt>材料</dt><dd>${esc(s.materials)}</dd>
+      <dt>精度</dt><dd>${esc(s.precision)}</dd>
+      <dt>寸法</dt><dd>${esc(s.dimensions)}</dd>
+      <dt>ロット</dt><dd>${esc(s.capacity)}</dd>
+      <dt>強み</dt><dd>${esc(s.strengths)}</dd>
+    </dl>
+  </article>`;
+}
+
+function demandCard(d) {
+  return `<article class="card">
+    <h3>${esc(d.title)}</h3>
+    <p class="meta">${esc(d.issuer)} ・ ${esc(d.industry)} ・ 種別: ${esc(d.demand_type)}</p>
+    <p>${chips(d.required_technologies)}</p>
+    <dl>
+      <dt>課題</dt><dd>${esc(d.problem)}</dd>
+      <dt>材料</dt><dd>${esc(d.materials)}</dd>
+      <dt>必須条件</dt><dd>${esc(d.required_conditions)}</dd>
+      <dt>数量</dt><dd>${esc(d.quantity_delivery)}</dd>
+      <dt>締切</dt><dd>${esc(d.deadline)}</dd>
+    </dl>
+  </article>`;
+}
+
+// 正解データ上の「適合」組み合わせを例として並べる。AIの出力ではない。
+function exampleCard(t) {
+  const s = sup[t.supplier_id], d = dem[t.demand_id];
+  if (!s || !d) return "";
+  // 正解データの note に「応用」とあるものだけを異業種の応用例として示す（AIのスコアではない）。
+  const applied = t.relevant === "1" && /応用/.test(t.note) && s.industry !== d.industry;
+  const label = t.relevant === "1"
+    ? (applied ? `<span class="novel">応用の例（異業種）</span>` : `<span class="ok">適合</span>`)
+    : `<span class="meta">不適合</span>`;
+  return `<article class="card">
+    <p>${label}</p>
+    <h3>${esc(s.name)}</h3>
+    <p class="meta">企業の業種: ${esc(s.industry)}</p>
+    <h3 style="margin-top:8px">${esc(d.title)}</h3>
+    <p class="meta">需要の業種: ${esc(d.industry)}</p>
+    <p class="meta">判断の理由: ${esc(t.note)}</p>
+  </article>`;
+}
+
+const views = {
+  suppliers(q) {
+    const list = DATA.suppliers.filter((r) => match(r, q));
+    return list.length ? `<div class="grid">${list.map(supplierCard).join("")}</div>` : `<p class="empty">一致する企業がありません。</p>`;
+  },
+  demands(q) {
+    const list = DATA.demands.filter((r) => match(r, q));
+    return list.length ? `<div class="grid">${list.map(demandCard).join("")}</div>` : `<p class="empty">一致する需要がありません。</p>`;
+  },
+  examples(q) {
+    const list = DATA.truth.filter((t) => match({ ...t, ...sup[t.supplier_id], ...dem[t.demand_id] }, q));
+    const body = list.map(exampleCard).join("");
+    return body ? `<div class="grid">${body}</div>` : `<p class="empty">一致する例がありません。</p>`;
+  },
+};
+
+let current = "suppliers";
+function render() {
+  document.getElementById("view").innerHTML = views[current](document.getElementById("q").value.trim().toLowerCase());
+}
+document.querySelectorAll("nav [data-tab]").forEach((b) => b.addEventListener("click", () => {
+  current = b.dataset.tab;
+  document.querySelectorAll("nav [data-tab]").forEach((x) => x.setAttribute("aria-selected", String(x === b)));
+  render();
+}));
+document.getElementById("q").addEventListener("input", render);
+render();
+</script>
+</body>
+</html>
