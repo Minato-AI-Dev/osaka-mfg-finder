@@ -1,0 +1,35 @@
+{
+  "name": "osaka-mfg-finder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "大阪の中小製造業の加工技術と異業種の技術ニーズをAIで照合するMVP（架空データ同梱）",
+  "scripts": {
+    "dev": "node scripts/run-next.mjs dev",
+    "build": "prisma generate && next build",
+    "start": "node scripts/run-next.mjs start",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "verify:ai-mock": "tsx scripts/verify-ai-pipeline.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "6.8.2",
+    "next": "15.3.3",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.21",
+    "@types/react": "19.1.6",
+    "@types/react-dom": "19.1.5",
+    "autoprefixer": "10.4.21",
+    "postcss": "8.5.3",
+    "prisma": "6.8.2",
+    "tailwindcss": "3.4.17",
+    "tsx": "4.19.4",
+    "typescript": "5.8.3",
+    "vitest": "3.2.1"
+  }
+}

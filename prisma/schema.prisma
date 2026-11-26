@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 技術・供給側（中小製造業）
+model Supplier {
+  id             String   @id
+  name           String
+  location       String
+  industry       String
+  processes      String   // 保有加工技術
+  materials      String   // 対応材料
+  equipment      String   // 主要設備
+  precision      String   // 加工精度
+  dimensions     String   // 対応寸法
+  capacity       String   // ロット・生産能力
+  products       String   // 製品・加工実績
+  strengths      String   // 技術的な強み
+  sourceUrl      String   // 情報取得元URL
+  licenseStatus  String   // licensed | fictional | unverified | restricted
+  structured     String?  // STEP1 の構造化結果（JSON）
+  embedding      String?  // 意味検索用ベクトル（JSON配列）
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// 需要・用途側
+model Demand {
+  id                   String   @id
+  title                String
+  issuer               String   // 発信元組織
+  industry             String
+  problem              String   // 解決したい課題
+  requiredFunctions    String   // 求める機能
+  requiredTechnologies String   // 必要とされる技術
+  materials            String   // 材料条件
+  requiredConditions   String   // 必須条件（寸法・精度など）
+  desiredConditions    String   // 希望条件
+  quantityDelivery     String   // 数量・納期
+  region               String   // 地域制限
+  publishedAt          String   // 公開日 YYYY-MM-DD
+  deadline             String   // 募集期限 YYYY-MM-DD
+  sourceUrl            String
+  licenseStatus        String
+  demandType           String   // order | tech_search | rnd_theme | hypothesis
+  structured           String?  // STEP2 の構造化結果（JSON）
+  embedding            String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// 人間による評価（有望 / 不適合 / 要確認）
+model Evaluation {
+  id         String   @id @default(cuid())
+  supplierId String
+  demandId   String
+  verdict    String   // promising | mismatch | needs_check
+  comment    String   @default("")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([supplierId, demandId])
+}
+
+// AIによる分析結果のキャッシュ（STEP4/5の出力）
+model Analysis {
+  id          String   @id @default(cuid())
+  supplierId  String
+  demandId    String
+  resultJson  String   // MatchResult（JSON）
+  model       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([supplierId, demandId])
+}
+
+// 既知の正解データ（Precision@K 用。存在する需要のみ評価指標を表示）
+model GroundTruth {
+  demandId   String
+  supplierId String
+  relevant   Boolean
+
+  @@id([demandId, supplierId])
+}
